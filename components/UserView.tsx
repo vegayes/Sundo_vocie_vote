@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SurveyOption } from '../types';
 
 interface UserViewProps {
@@ -8,24 +8,49 @@ interface UserViewProps {
 }
 
 const UserView: React.FC<UserViewProps> = ({ options, onSubmit }) => {
+  // rankings: { 1: 'option-id', 2: 'option-id', ... }
   const [rankings, setRankings] = useState<Record<number, string>>({});
+  const [activeRank, setActiveRank] = useState<number>(1);
   const ranks = [1, 2, 3, 4, 5];
 
-  const handleSelect = (rank: number, optionId: string) => {
+  // 자동으로 다음 빈 슬롯을 활성화
+  useEffect(() => {
+    const nextEmptyRank = ranks.find(r => !rankings[r]);
+    if (nextEmptyRank) {
+      setActiveRank(nextEmptyRank);
+    }
+  }, [rankings]);
+
+  const handleOptionClick = (optionId: string) => {
+    // 이미 다른 순위에 선택된 경우 제거 (토글)
+    const existingRank = Object.entries(rankings).find(([_, id]) => id === optionId);
+    if (existingRank) {
+      const newRankings = { ...rankings };
+      delete newRankings[parseInt(existingRank[0])];
+      setRankings(newRankings);
+      return;
+    }
+
+    // 현재 활성화된 순위에 할당
     setRankings(prev => ({
       ...prev,
-      [rank]: optionId
+      [activeRank]: optionId
     }));
   };
 
-  const isOptionSelectedElsewhere = (optionId: string, currentRank: number) => {
-    return Object.entries(rankings).some(([rank, id]) => parseInt(rank) !== currentRank && id === optionId);
+  const removeRank = (rank: number) => {
+    const newRankings = { ...rankings };
+    delete newRankings[rank];
+    setRankings(newRankings);
+    setActiveRank(rank);
   };
+
+  const isComplete = Object.keys(rankings).length === 5;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (Object.keys(rankings).length < 5) {
-      alert('1위부터 5위까지 모든 참가자를 선택해 주세요.');
+    if (!isComplete) {
+      alert('1위부터 5위까지 모든 멤버를 각성시켜 주세요.');
       return;
     }
     onSubmit(rankings);
@@ -33,108 +58,137 @@ const UserView: React.FC<UserViewProps> = ({ options, onSubmit }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4">
-      <div className="py-16 text-center">
-        <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-rose-500/30 bg-rose-500/5 text-rose-500 text-[11px] font-bold uppercase tracking-[0.4em]">
-          <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
-          Official Selection Phase
+    <div className="w-full max-w-4xl mx-auto px-4 pb-32">
+      {/* 1. 상단 스테이지: 선택된 랭킹 슬롯 (모바일에서도 한눈에 확인 가능) */}
+      <div className="sticky top-20 z-40 py-6 mb-8">
+        <div className="glass-premium rounded-[32px] p-4 md:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.8)] border-rose-600/30">
+          <div className="flex justify-between items-center gap-2 md:gap-4 overflow-x-auto pb-2 no-scrollbar">
+            {ranks.map(rank => {
+              const selectedOptionId = rankings[rank];
+              const option = options.find(o => o.id === selectedOptionId);
+              const isActive = activeRank === rank;
+
+              return (
+                <button
+                  key={rank}
+                  type="button"
+                  onClick={() => selectedOptionId ? removeRank(rank) : setActiveRank(rank)}
+                  className={`
+                    relative flex-shrink-0 flex flex-col items-center justify-center 
+                    w-16 h-24 md:w-28 md:h-36 rounded-2xl border-2 transition-all duration-500
+                    ${selectedOptionId 
+                      ? rank === 1 ? 'border-amber-500 bg-amber-500/10' : 'border-rose-600 bg-rose-600/10' 
+                      : isActive ? 'border-white bg-white/5 animate-pulse' : 'border-zinc-800 bg-black'}
+                  `}
+                >
+                  <div className={`text-[10px] md:text-xs font-black font-logo mb-1 ${rank === 1 ? 'text-amber-500' : 'text-zinc-500'}`}>
+                    {rank === 1 ? 'CROWN' : `${rank}위`}
+                  </div>
+                  
+                  {option ? (
+                    <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                      <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center mb-1 md:mb-2 ${rank === 1 ? 'bg-amber-500' : 'bg-rose-600'}`}>
+                        {rank === 1 ? (
+                          <svg className="w-5 h-5 md:w-8 md:h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.55 18.55 20 18 20H6C5.45 20 5 19.55 5 19V18H19V19Z" />
+                          </svg>
+                        ) : (
+                          <span className="text-white font-black text-xs md:text-sm">{rank}</span>
+                        )}
+                      </div>
+                      <span className="text-[9px] md:text-[11px] font-bold text-white text-center px-1 leading-tight truncate w-full">
+                        {option.label}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 md:w-10 md:h-10 border-2 border-dashed border-zinc-800 rounded-full flex items-center justify-center">
+                      <span className="text-zinc-800 text-lg md:text-2xl font-black">+</span>
+                    </div>
+                  )}
+
+                  {selectedOptionId && (
+                    <div className="absolute -top-2 -right-2 w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center text-[10px] text-white hover:bg-rose-600">
+                      ✕
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <h2 className="text-6xl font-black text-white mb-6 font-logo tracking-tighter uppercase italic">
-          The Awakening
-        </h2>
-        <p className="text-zinc-400 text-lg max-w-2xl mx-auto font-light leading-relaxed">
-          복면 뒤에 숨겨진 진정한 가치를 찾아라.<br/>
-          <span className="text-white font-bold">사자보이즈</span>의 목소리로 증명될 최고의 5인을 선정하세요.
-        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-12 pb-24">
-        <div className="glass-dark rounded-[40px] shadow-2xl overflow-hidden border border-rose-900/30">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/5 border-b border-rose-900/20">
-                  <th className="px-10 py-10 font-black text-rose-500 font-logo text-sm uppercase tracking-[0.3em] sticky left-0 bg-zinc-950/95 z-10 w-80">
-                    VOICE CANDIDATES
-                  </th>
-                  {ranks.map(r => (
-                    <th key={r} className="px-6 py-10 font-black text-center font-logo text-sm">
-                      <div className={`text-xs mb-1 ${r === 1 ? 'text-amber-400' : 'text-zinc-500'}`}>{r === 1 ? 'GOLD' : 'RANK'}</div>
-                      <div className={`text-2xl ${r === 1 ? 'text-amber-400 glow-text' : 'text-white'}`}>{r}위</div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {options.map((option) => (
-                  <tr key={option.id} className="border-b border-rose-900/10 hover:bg-rose-500/[0.03] transition-all group">
-                    <td className="px-10 py-8 font-bold text-lg text-zinc-300 sticky left-0 bg-zinc-950/95 group-hover:text-white z-10 border-r border-rose-900/10">
-                      <div className="flex items-center gap-4">
-                        <div className="w-1 h-8 bg-rose-600 rounded-full scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
-                        {option.label}
-                      </div>
-                    </td>
-                    {ranks.map(rank => {
-                      const isDisabled = isOptionSelectedElsewhere(option.id, rank);
-                      const isSelected = rankings[rank] === option.id;
-
-                      return (
-                        <td key={`${option.id}-${rank}`} className="px-6 py-8 text-center">
-                          <label className={`
-                            relative flex items-center justify-center w-12 h-12 mx-auto cursor-pointer rounded-2xl border-2 transition-all duration-500
-                            ${isSelected 
-                              ? rank === 1 
-                                ? 'border-amber-400 bg-amber-400 text-black shadow-[0_0_30px_rgba(251,191,36,0.5)] scale-110' 
-                                : 'border-rose-600 bg-rose-600 text-white shadow-[0_0_25px_rgba(225,29,72,0.5)] scale-110' 
-                              : 'border-zinc-800 hover:border-rose-500/50 hover:scale-105'}
-                            ${isDisabled ? 'opacity-5 cursor-not-allowed filter grayscale' : ''}
-                          `}>
-                            <input
-                              type="radio"
-                              name={`rank-${rank}`}
-                              value={option.id}
-                              checked={isSelected}
-                              disabled={isDisabled}
-                              onChange={() => handleSelect(rank, option.id)}
-                              className="sr-only"
-                            />
-                            {isSelected ? (
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <span className="text-xs font-black text-zinc-700 font-logo">{rank}</span>
-                            )}
-                          </label>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* 2. 하단 리스트: 참가자 선택 그리드 */}
+      <div className="space-y-6">
+        <div className="text-center space-y-2 mb-8">
+          <p className="text-rose-500 text-[10px] font-black tracking-[0.3em] uppercase">Selection Pool</p>
+          <h3 className="text-xl md:text-2xl font-black text-white font-logo italic">AWAKEN YOUR CANDIDATE</h3>
+          <p className="text-zinc-500 text-xs">순위를 누르고 아래의 후보자를 선택하여 팀을 완성하세요.</p>
         </div>
 
-        <div className="flex flex-col items-center gap-6">
-          <div className="text-zinc-500 text-xs font-bold uppercase tracking-widest flex items-center gap-3">
-             <span className="w-8 h-[1px] bg-zinc-800"></span>
-             중복 선택 불가 · 1~5위 필수 지정
-             <span className="w-8 h-[1px] bg-zinc-800"></span>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+          {options.map((option) => {
+            const selectedInRank = Object.entries(rankings).find(([_, id]) => id === option.id);
+            const isSelected = !!selectedInRank;
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleOptionClick(option.id)}
+                className={`
+                  relative group p-4 md:p-6 rounded-2xl border-2 text-left transition-all duration-300
+                  ${isSelected 
+                    ? 'border-rose-600 bg-rose-600/20 shadow-[0_0_20px_rgba(225,29,72,0.3)]' 
+                    : 'border-zinc-900 bg-zinc-950/50 hover:border-rose-900 hover:bg-zinc-900'}
+                `}
+              >
+                <div className="flex flex-col gap-2 md:gap-3">
+                  <div className={`
+                    w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-colors
+                    ${isSelected ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-600 group-hover:bg-zinc-800'}
+                  `}>
+                    {isSelected ? (
+                      <span className="font-black text-xs md:text-sm">{selectedInRank[0]}위</span>
+                    ) : (
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="font-bold text-sm md:text-base text-zinc-300 group-hover:text-white truncate">
+                    {option.label}
+                  </div>
+                </div>
+
+                {isSelected && (
+                  <div className="absolute top-2 right-2 animate-pulse">
+                     <div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. 제출 섹션 */}
+      <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/90 to-transparent z-50">
+        <div className="max-w-md mx-auto">
           <button
-            type="submit"
-            className="group relative px-20 py-6 bg-transparent font-logo tracking-[0.5em] font-black text-white uppercase overflow-hidden rounded-[24px]"
+            onClick={handleSubmit}
+            disabled={!isComplete}
+            className={`
+              w-full py-4 md:py-6 rounded-2xl font-black font-logo tracking-[0.3em] uppercase text-sm md:text-base transition-all duration-500
+              ${isComplete 
+                ? 'bg-rose-600 text-white shadow-[0_10px_40px_rgba(225,29,72,0.5)] scale-100 opacity-100' 
+                : 'bg-zinc-900 text-zinc-600 scale-95 opacity-50 cursor-not-allowed'}
+            `}
           >
-            <div className="absolute inset-0 bg-rose-600 transition-all duration-500 group-hover:bg-rose-500"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-            <span className="relative z-10 flex items-center gap-4 text-xl">
-              SUBMIT VOTES
-              <svg className="w-6 h-6 animate-bounce-x" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7-7 7M5 12h16" /></svg>
-            </span>
+            {isComplete ? 'FINAL SUBMIT' : `${5 - Object.keys(rankings).length} MORE REQUIRED`}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

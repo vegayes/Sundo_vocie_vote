@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewMode, SurveyOption, SurveyResponse } from './types';
+import { ViewMode, SurveyOption, SurveyResponse, User } from './types';
 import UserView from './components/UserView';
 import AdminView from './components/AdminView';
+import LoginView from './components/LoginView';
 import { Layout } from './components/Layout';
 
 const DEFAULT_OPTIONS: SurveyOption[] = [
@@ -19,11 +20,16 @@ const DEFAULT_OPTIONS: SurveyOption[] = [
 ];
 
 const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('USER');
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = sessionStorage.getItem('current_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [options, setOptions] = useState<SurveyOption[]>(() => {
     const saved = localStorage.getItem('survey_options');
     return saved ? JSON.parse(saved) : DEFAULT_OPTIONS;
   });
+  
   const [responses, setResponses] = useState<SurveyResponse[]>(() => {
     const saved = localStorage.getItem('survey_responses');
     return saved ? JSON.parse(saved) : [];
@@ -37,12 +43,40 @@ const App: React.FC = () => {
     localStorage.setItem('survey_responses', JSON.stringify(responses));
   }, [responses]);
 
+  useEffect(() => {
+    if (currentUser) {
+      sessionStorage.setItem('current_user', JSON.stringify(currentUser));
+    } else {
+      sessionStorage.removeItem('current_user');
+    }
+  }, [currentUser]);
+
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
   const addResponse = (rankings: Record<number, string>) => {
+    if (!currentUser) return;
+
+    // Check if user already voted
+    const alreadyVoted = responses.find(r => r.userId === currentUser.id);
+    if (alreadyVoted && currentUser.role !== 'ADMIN') {
+      alert('이미 투표에 참여하셨습니다. 결과 발표를 기다려 주세요!');
+      return;
+    }
+
     const newResponse: SurveyResponse = {
       id: crypto.randomUUID(),
+      userId: currentUser.id,
+      userName: currentUser.name,
       timestamp: Date.now(),
       rankings
     };
+    
     setResponses(prev => [...prev, newResponse]);
     alert('당신의 소중한 투표가 정상적으로 집계되었습니다. 각성의 무대를 기대해 주세요!');
   };
@@ -57,15 +91,22 @@ const App: React.FC = () => {
     }
   };
 
+  // Determine view based on user role
+  const viewMode: ViewMode = currentUser 
+    ? (currentUser.role === 'ADMIN' ? 'ADMIN' : 'USER') 
+    : 'LOGIN';
+
   return (
-    <Layout viewMode={viewMode} setViewMode={setViewMode}>
+    <Layout viewMode={viewMode} user={currentUser} onLogout={handleLogout}>
       <div className="max-w-7xl mx-auto py-8">
-        {viewMode === 'USER' ? (
+        {viewMode === 'LOGIN' && <LoginView onLogin={handleLogin} />}
+        {viewMode === 'USER' && (
           <UserView 
             options={options} 
             onSubmit={addResponse} 
           />
-        ) : (
+        )}
+        {viewMode === 'ADMIN' && (
           <AdminView 
             options={options} 
             responses={responses} 

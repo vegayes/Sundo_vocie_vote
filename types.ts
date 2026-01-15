@@ -4,13 +4,21 @@ export interface SurveyOption {
   label: string;
 }
 
+export interface User {
+  id: string; // Employee ID or Name
+  name: string;
+  role: 'USER' | 'ADMIN';
+}
+
 export interface SurveyResponse {
   id: string;
+  userId: string;
+  userName: string;
   timestamp: number;
   rankings: Record<number, string>; // Rank (1-5) -> Option ID
 }
 
-export type ViewMode = 'USER' | 'ADMIN';
+export type ViewMode = 'LOGIN' | 'USER' | 'ADMIN';
 
 export interface RankingData {
   optionLabel: string;
