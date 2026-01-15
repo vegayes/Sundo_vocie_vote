@@ -1,0 +1,5 @@
+{
+  "name": "RankMaster Survey",
+  "description": "A sophisticated ranked-choice survey application that prevents duplicate selections across multiple ranking levels. Includes an admin dashboard for option management and statistical visualization.",
+  "requestFramePermissions": []
+}

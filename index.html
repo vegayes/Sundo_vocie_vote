@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 SUNDO VOICE - The Awakening</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+          font-family: 'Noto Sans KR', sans-serif;
+          background-color: #000000;
+          color: #ffffff;
+          overflow-x: hidden;
+        }
+        .font-logo { font-family: 'Orbitron', sans-serif; }
+        .font-serif { font-family: 'Cinzel', serif; }
+        
+        /* Magenta Glow Theme */
+        .magenta-glow {
+          box-shadow: 0 0 20px rgba(225, 29, 72, 0.4);
+        }
+        .text-magenta { color: #e11d48; }
+        .bg-magenta { background-color: #e11d48; }
+        .border-magenta { border-color: #e11d48; }
+        
+        .stage-gradient {
+          background: linear-gradient(180deg, rgba(225, 29, 72, 0.1) 0%, rgba(0, 0, 0, 1) 100%);
+        }
+        
+        .glass-dark {
+          background: rgba(15, 15, 15, 0.7);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(225, 29, 72, 0.2);
+        }
+
+        .voting-card-active {
+          border-color: #e11d48;
+          background: rgba(225, 29, 72, 0.1);
+          box-shadow: 0 0 30px rgba(225, 29, 72, 0.3);
+        }
+
+        /* Animated Background Elements */
+        .spotlight {
+          position: fixed;
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, rgba(225, 29, 72, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: -1;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+</head>
+<body class="bg-black text-white min-h-screen">
+    <div class="spotlight top-[-200px] left-[-200px]"></div>
+    <div class="spotlight bottom-[-200px] right-[-200px]"></div>
+    <div id="root"></div>
+</body>
+</html>
